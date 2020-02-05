@@ -60,11 +60,17 @@ sub new {
     return $self;
 }
 
+sub listFiles {
+    my ($self, %opt)        = @_;
+    $self->__searchFile(%opt);
+}
+
 sub searchFileByName {
     my ($self, %opt)        = @_;
     my $filename            = $opt{-filename}      || croak "You must specify '-filename' param";
+    delete $opt{-filename};
 
-    my $search_res = $self->__searchFile('name=\'' . $filename . "'");
+    my $search_res = $self->__searchFile('-q' => 'name=\'' . $filename . "'", %opt);
  
     return $search_res;
 }
@@ -72,8 +78,9 @@ sub searchFileByName {
 sub searchFileByNameContains {
     my ($self, %opt)        = @_;
     my $filename            = $opt{-filename}      || croak "You must specify '-filename' param";
+    delete $opt{-filename};
 
-    my $search_res = $self->__searchFile('name contains \'' . $filename . "'");
+    my $search_res = $self->__searchFile('-q' => 'name contains \'' . $filename . "'", %opt);
  
     return $search_res;
 }
@@ -324,7 +331,7 @@ sub __readErrorMessageFromResponse {
 
 
 sub __searchFile {
-    my ($self, $q) = @_;
+    my ($self, %opt) = @_;
 
     my $access_token = $self->__getAccessToken();
     
@@ -333,7 +340,8 @@ sub __searchFile {
     ];
 
     my $uri = URI->new($FILE_API_URL);
-    $uri->query_form('q'    => $q);
+    $uri->query_param('q'      => $opt{-q})      if $opt{-q};
+    $uri->query_param('fields' => $opt{-fields}) if $opt{-fields};
     my $request = HTTP::Request->new('GET',
                                 $uri,
                                 $headers,
@@ -416,6 +424,10 @@ This module use to upload, download, share file on Google drive
                                         -redirect_uri       => $authorized_url,
                                         );
 
+    # Get a list of all files [Optional: Set '-fields' to return full/partial metadata]
+    my $files = $disk->listFiles( -fields => '*' );
+    print "$_->{'modifiedTime'}  $_->{'name'}\n" for @$files;
+
     # Search file by name
     my $file_name = 'upload.doc';
     my $files = $disk->searchFileByName( -filename => $file_name ) or croak "File '$file_name' not found";
@@ -447,6 +459,23 @@ Create L<Net::Google::Disk> object
         -refresh_token      => Refresh token value (Get from L<Net::Google::OAuth>)
         -username           => Email Address to Generate Access/Refresh Token(s)
         -redirect_uri       => Authorized Redirect URL to Generate Access/Refresh Token(s)
+
+=head2 listFiles(%opt)
+
+List all files, or perform advanced search query
+
+    %opt:
+        -q                  => See: https://developers.google.com/drive/api/v3/search-files#query_string_examples
+        -fields             => See: https://developers.google.com/drive/api/v3/performance#partial-response
+    Return:
+   [
+        [0] {
+            id         "1f13sLfo6UEyUuFpn-NWPnY",
+            kind       "drive#file",
+            mimeType   "application/x-perl",
+            name       "drive.t"
+        }
+    ]
 
 =head2 searchFileByName(%opt)
 
