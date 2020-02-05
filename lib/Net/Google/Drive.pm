@@ -9,6 +9,7 @@ use LWP::UserAgent;
 use HTTP::Request;
 use JSON::XS;
 use URI;
+use URI::QueryParam;
 use File::Basename;
 
 use Carp qw/carp croak/;
@@ -355,9 +356,9 @@ sub __apiRequest {
 
     my $json_res = decode_json($response->content);
 
-    if (my $next_token = $json_res->{next_token}) {
+    if (my $next_token = $json_res->{nextPageToken}) {
         my $uri = $request->uri;
-        $uri->query_form('next_token' => $next_token);
+        $uri->query_param('pageToken' => $next_token);
         $self->__apiRequest($request, $files);
     }
     push @$files, @{$json_res->{files}};
