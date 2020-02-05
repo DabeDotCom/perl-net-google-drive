@@ -361,7 +361,8 @@ sub __apiRequest {
         $uri->query_param('pageToken' => $next_token);
         $self->__apiRequest($request, $files);
     }
-    push @$files, @{$json_res->{files}};
+
+    unshift @$files, @{$json_res->{files}};
 
     return 1;
 }
