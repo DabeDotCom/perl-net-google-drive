@@ -14,7 +14,7 @@ WriteMakefile(
         'JSON::XS'              => 3.04,
         'HTTP::Request'         => 6.00,
         'Net::Google::OAuth'    => 0.03,
-        'File::Basename'        => 2.85,
+        'File::Basename'        => 2.84,
         'File::Spec'            => 3.48,
     },
     META_MERGE   => {
