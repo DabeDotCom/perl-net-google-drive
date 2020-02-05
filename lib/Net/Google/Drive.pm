@@ -29,14 +29,32 @@ sub new {
     my $self                    = {};
     my $client_id               = $opt{-client_id}          // croak "You must specify '-client_id' param";
     my $client_secret           = $opt{-client_secret}      // croak "You must specify '-client_secret' param";
-    $self->{access_token}       = $opt{-access_token}       // croak "You must specify '-access_token' param";
-    $self->{refresh_token}      = $opt{-refresh_token}      // croak "You must specify '-refresh_token' param";
+    $self->{access_token}       = $opt{-access_token};
+    $self->{refresh_token}      = $opt{-refresh_token};
     $self->{ua}                 = LWP::UserAgent->new();
 
     $self->{oauth}              = Net::Google::OAuth->new(
                                                 -client_id      => $client_id,
                                                 -client_secret  => $client_secret,
                                             );
+
+    unless ( $self->{access_token} ) {
+        unless ( $self->{refresh_token} ) {
+
+            croak "[Net::Google::Drive] You must specify '-access_token', '-refresh_token', or '-username' && '-redirect_uri' param(s)"
+              unless $opt{-username} && $opt{-redirect_uri};
+
+            $self->{oauth}->generateAccessToken(
+                                                 -scope        => 'drive',
+                                                 -email        => $opt{-username},
+                                                 -redirect_uri => $opt{-redirect_uri},
+                                               )
+              or die "[Net::Google::Drive] Couldn't generate access token: $@";
+
+            print STDERR "GENERATED REFRESH TOKEN: @{[ $self->{oauth}->getRefreshToken ]}\n";
+        }
+    }
+
     bless $self, $class;
     return $self;
 }
@@ -383,13 +401,17 @@ B<Net::Google::Drive> - simple Google drive API module
 This module use to upload, download, share file on Google drive
     use Net::Google::Drive;
 
-    #Create disk object. You need send in param 'access_token', 'refresh_token', 'client_id' and 'client_secret'. 
-    #Values of 'client_id' and 'client_secret' uses to create Net::Google::OAuth object so that update value of 'access_token'.
+    # Create disk object. You need to send in 'client_id' and 'client_secret', and one of:
+    # 1) 'access_token'
+    # 2) 'refresh_token'
+    # 3) 'username' and 'redirect_uri'
     my $disk = Net::Google::Drive->new(
                                         -client_id          => $client_id,
                                         -client_secret      => $client_secret,
                                         -access_token       => $access_token,
                                         -refresh_token      => $refresh_token,
+                                        -username           => $email_address,
+                                        -redirect_uri       => $authorized_url,
                                         );
 
     # Search file by name
@@ -421,6 +443,8 @@ Create L<Net::Google::Disk> object
         -client_secret      => Your app client secret (Get from google when register your app)
         -access_token       => Access token value (Get from L<Net::Google::OAuth>)
         -refresh_token      => Refresh token value (Get from L<Net::Google::OAuth>)
+        -username           => Email Address to Generate Access/Refresh Token(s)
+        -redirect_uri       => Authorized Redirect URL to Generate Access/Refresh Token(s)
 
 =head2 searchFileByName(%opt)
 
