@@ -15,7 +15,7 @@ use Carp qw/carp croak/;
 
 use Net::Google::OAuth;
 
-our $VERSION = '0.01';
+use version; our $VERSION = version->declare("0.10.1");
 
 our $DOWNLOAD_BUFF_SIZE     = 1024;
 our $UPLOAD_BUFF_SIZE       = 256 * 1024;
