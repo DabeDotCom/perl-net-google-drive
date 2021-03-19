@@ -28,32 +28,32 @@ sub new {
     my ( $class, %opt ) = @_;
 
     my $self          = {};
-    my $client_id     = $opt{-client_id} // croak "You must specify '-client_id' param";
-    my $client_secret = $opt{-client_secret} // croak "You must specify '-client_secret' param";
-    $self->{access_token}  = $opt{-access_token};
-    $self->{refresh_token} = $opt{-refresh_token};
-    $self->{ua}            = LWP::UserAgent->new();
+    my $client_id     = $opt{'-client_id'} // croak "You must specify '-client_id' param";
+    my $client_secret = $opt{'-client_secret'} // croak "You must specify '-client_secret' param";
+    $self->{'access_token'}  = $opt{'-access_token'};
+    $self->{'refresh_token'} = $opt{'-refresh_token'};
+    $self->{'ua'}            = LWP::UserAgent->new();
 
-    $self->{oauth} = Net::Google::OAuth->new(
+    $self->{'oauth'} = Net::Google::OAuth->new(
         -client_id     => $client_id,
         -client_secret => $client_secret,
     );
 
-    unless ( $self->{access_token} ) {
-        unless ( $self->{refresh_token} ) {
+    unless ( $self->{'access_token'} ) {
+        unless ( $self->{'refresh_token'} ) {
 
             croak
               "[Net::Google::Drive] You must specify '-access_token', '-refresh_token', or '-username' && '-redirect_uri' param(s)"
-              unless $opt{-username} && $opt{-redirect_uri};
+              unless $opt{'-username'} && $opt{'-redirect_uri'};
 
-            $self->{oauth}->generateAccessToken(
+            $self->{'oauth'}->generateAccessToken(
                 -scope        => 'drive',
-                -email        => $opt{-username},
-                -redirect_uri => $opt{-redirect_uri},
+                -email        => $opt{'-username'},
+                -redirect_uri => $opt{'-redirect_uri'},
               )
               or die "[Net::Google::Drive] Couldn't generate access token: $@";
 
-            print STDERR "GENERATED REFRESH TOKEN: @{[ $self->{oauth}->getRefreshToken ]}\n";
+            print STDERR "GENERATED REFRESH TOKEN: @{[ $self->{'oauth'}->getRefreshToken ]}\n";
         }
     }
 
@@ -68,8 +68,8 @@ sub listFiles {
 
 sub searchFileByName {
     my ( $self, %opt ) = @_;
-    my $filename = $opt{-filename} || croak "You must specify '-filename' param";
-    delete $opt{-filename};
+    my $filename = $opt{'-filename'} || croak "You must specify '-filename' param";
+    delete $opt{'-filename'};
 
     my $search_res = $self->__searchFile( '-q' => 'name=\'' . $filename . "'", %opt );
 
@@ -78,8 +78,8 @@ sub searchFileByName {
 
 sub searchFileByNameContains {
     my ( $self, %opt ) = @_;
-    my $filename = $opt{-filename} || croak "You must specify '-filename' param";
-    delete $opt{-filename};
+    my $filename = $opt{'-filename'} || croak "You must specify '-filename' param";
+    delete $opt{'-filename'};
 
     my $search_res = $self->__searchFile( '-q' => 'name contains \'' . $filename . "'", %opt );
 
@@ -88,9 +88,9 @@ sub searchFileByNameContains {
 
 sub downloadFile {
     my ( $self, %opt ) = @_;
-    my $file_id   = $opt{-file_id}   || croak "You must specify '-file_id' param";
-    my $dest_file = $opt{-dest_file} || croak "You must specify '-dest_file' param";
-    my $ua        = $self->{ua};
+    my $file_id   = $opt{'-file_id'}   || croak "You must specify '-file_id' param";
+    my $dest_file = $opt{'-dest_file'} || croak "You must specify '-dest_file' param";
+    my $ua        = $self->{'ua'};
     my $access_token = $self->__getAccessToken();
 
     my $uri = URI->new( join( '/', $FILE_API_URL, $file_id ) );
@@ -124,7 +124,7 @@ sub downloadFile {
 
 sub deleteFile {
     my ( $self, %opt ) = @_;
-    my $file_id      = $opt{-file_id} || croak "You must specify '-file_id' param";
+    my $file_id      = $opt{'-file_id'} || croak "You must specify '-file_id' param";
     my $access_token = $self->__getAccessToken();
 
     my $uri = URI->new( join( '/', $FILE_API_URL, $file_id ) );
@@ -132,7 +132,7 @@ sub deleteFile {
     my $headers = [ 'Authorization' => 'Bearer ' . $access_token, ];
 
     my $request       = HTTP::Request->new( 'DELETE', $uri, $headers, );
-    my $response      = $self->{ua}->request($request);
+    my $response      = $self->{'ua'}->request($request);
     my $response_code = $response->code();
     if ( $response_code =~ /^[^2]/ ) {
         my $error_message = __readErrorMessageFromResponse($response);
@@ -143,14 +143,14 @@ sub deleteFile {
 
 sub uploadFile {
     my ( $self, %opt ) = @_;
-    my $source_file = $opt{-source_file} || croak "You must specify '-source_file' param";
+    my $source_file = $opt{'-source_file'} || croak "You must specify '-source_file' param";
 
     if ( not -f $source_file ) {
         croak "File: $source_file not exists";
     }
 
     my $file_size       = ( stat $source_file )[7];
-    my $part_upload_uri = $self->__createEmptyFile( $source_file, $file_size, $opt{-parents} );
+    my $part_upload_uri = $self->__createEmptyFile( $source_file, $file_size, $opt{'-parents'} );
     open my $FH, "<$source_file" or croak "Can't open file: $source_file $!";
     binmode $FH;
 
@@ -166,7 +166,7 @@ sub uploadFile {
         my $request = HTTP::Request->new( 'PUT', $uri, $headers, $filebuf );
 
         # Send request to upload part of file
-        my $response      = $self->{ua}->request($request);
+        my $response      = $self->{'ua'}->request($request);
         my $response_code = $response->code();
 
         # On end part, response code is 200, on middle part is 308
@@ -188,9 +188,9 @@ sub uploadFile {
 
 sub setFilePermission {
     my ( $self, %opt ) = @_;
-    my $file_id         = $opt{-file_id} || croak "You must specify '-file_id' param";
-    my $permission_type = $opt{-type}    || croak "You must specify '-type' param";
-    my $role            = $opt{-role}    || croak "You must specify '-role' param";
+    my $file_id         = $opt{'-file_id'} || croak "You must specify '-file_id' param";
+    my $permission_type = $opt{'-type'}    || croak "You must specify '-type' param";
+    my $role            = $opt{'-role'}    || croak "You must specify '-role' param";
     my %valid_permissions = (
         'user'   => 1,
         'group'  => 1,
@@ -230,7 +230,7 @@ sub setFilePermission {
 
     my $request = HTTP::Request->new( 'POST', $uri, $headers, encode_json($request_content) );
 
-    my $response      = $self->{ua}->request($request);
+    my $response      = $self->{'ua'}->request($request);
     my $response_code = $response->code();
     if ( $response_code != 200 ) {
         my $error_message = __readErrorMessageFromResponse($response);
@@ -241,7 +241,7 @@ sub setFilePermission {
 
 sub getFileMetadata {
     my ( $self, %opt ) = @_;
-    my $file_id      = $opt{-file_id} || croak "You must specify '-file_id' param";
+    my $file_id      = $opt{'-file_id'} || croak "You must specify '-file_id' param";
     my $access_token = $self->__getAccessToken();
 
     my $uri = URI->new( join( '/', $FILE_API2_URL, $file_id ) );
@@ -249,7 +249,7 @@ sub getFileMetadata {
 
     my $headers       = [ 'Authorization' => 'Bearer ' . $access_token, ];
     my $request       = HTTP::Request->new( "GET", $uri, $headers );
-    my $response      = $self->{ua}->request($request);
+    my $response      = $self->{'ua'}->request($request);
     my $response_code = $response->code();
     if ( $response_code != 200 ) {
         my $error_message = __readErrorMessageFromResponse($response);
@@ -260,7 +260,7 @@ sub getFileMetadata {
 
 sub shareFile {
     my ( $self, %opt ) = @_;
-    my $file_id = $opt{-file_id} || croak "You must specify '-file_id' param";
+    my $file_id = $opt{'-file_id'} || croak "You must specify '-file_id' param";
 
     ## Adding permissions to file
     my $permission = $self->setFilePermission(
@@ -268,12 +268,12 @@ sub shareFile {
         -type    => 'anyone',
         -role    => 'reader',
     );
-    if ( ( not exists $permission->{type} ) || ( $permission->{type} ne 'anyone' ) ) {
+    if ( ( not exists $permission->{'type'} ) || ( $permission->{'type'} ne 'anyone' ) ) {
         croak "Can't set permission to anyone for file id: $file_id";
     }
 
     my $metadata = $self->getFileMetadata( -file_id => $file_id );
-    return $metadata->{webContentLink};
+    return $metadata->{'webContentLink'};
 }
 
 sub __createEmptyFile {
@@ -281,7 +281,7 @@ sub __createEmptyFile {
     my $access_token = $self->__getAccessToken();
 
     my $body = { 'name' => basename($source_file), };
-    $body->{parents} = $parents if $parents;
+    $body->{'parents'} = $parents if $parents;
     my $body_json = encode_json($body);
 
     my $uri = URI->new($UPLOAD_FILE_API_URL);
@@ -294,7 +294,7 @@ sub __createEmptyFile {
     ];
 
     my $request  = HTTP::Request->new( 'POST', $uri, $headers, $body_json );
-    my $response = $self->{ua}->request($request);
+    my $response = $self->{'ua'}->request($request);
 
     my $response_code = $response->code();
     if ( $response_code != 200 ) {
@@ -311,7 +311,7 @@ sub __readErrorMessageFromResponse {
     my ($response) = @_;
     my $error_message = eval { decode_json( $response->content ) };
     if ($error_message) {
-        return $error_message->{error}->{message};
+        return $error_message->{'error'}->{'message'};
     }
     return '';
 }
@@ -324,8 +324,8 @@ sub __searchFile {
     my $headers = [ 'Authorization' => 'Bearer ' . $access_token, ];
 
     my $uri = URI->new($FILE_API_URL);
-    $uri->query_param( 'q'      => $opt{-q} )      if $opt{-q};
-    $uri->query_param( 'fields' => $opt{-fields} ) if $opt{-fields};
+    $uri->query_param( 'q'      => $opt{'-q'} )      if $opt{'-q'};
+    $uri->query_param( 'fields' => $opt{'-fields'} ) if $opt{'-fields'};
     my $request = HTTP::Request->new( 'GET', $uri, $headers, );
     my $files   = [];
     $self->__apiRequest( $request, $files );
@@ -336,7 +336,7 @@ sub __searchFile {
 sub __apiRequest {
     my ( $self, $request, $files ) = @_;
 
-    my $response      = $self->{ua}->request($request);
+    my $response      = $self->{'ua'}->request($request);
     my $response_code = $response->code;
     if ( $response_code != 200 ) {
         croak "Wrong response code on search_file. Code: $response_code";
@@ -344,13 +344,13 @@ sub __apiRequest {
 
     my $json_res = decode_json( $response->content );
 
-    if ( my $next_token = $json_res->{nextPageToken} ) {
+    if ( my $next_token = $json_res->{'nextPageToken'} ) {
         my $uri = $request->uri;
         $uri->query_param( 'pageToken' => $next_token );
         $self->__apiRequest( $request, $files );
     }
 
-    unshift @$files, @{ $json_res->{files} };
+    unshift @$files, @{ $json_res->{'files'} };
 
     return 1;
 }
@@ -358,22 +358,22 @@ sub __apiRequest {
 sub __getAccessToken {
     my ($self) = @_;
 
-    my $oauth      = $self->{oauth};
-    my $token_info = eval { $oauth->getTokenInfo( -access_token => $self->{access_token} ); };
+    my $oauth      = $self->{'oauth'};
+    my $token_info = eval { $oauth->getTokenInfo( -access_token => $self->{'access_token'} ); };
 
     # If error on get token info or token is expired
     if ( not $@ ) {
-        if ( ( exists $token_info->{expires_in} ) && ( $token_info->{expires_in} > 5 ) ) {
-            return $self->{access_token};
+        if ( ( exists $token_info->{'expires_in'} ) && ( $token_info->{'expires_in'} > 5 ) ) {
+            return $self->{'access_token'};
         }
     }
 
     #Refresh token
-    $oauth->refreshToken( -refresh_token => $self->{refresh_token} );
-    $self->{refresh_token} = $oauth->getRefreshToken();
-    $self->{access_token}  = $oauth->getAccessToken();
+    $oauth->refreshToken( -refresh_token => $self->{'refresh_token'} );
+    $self->{'refresh_token'} = $oauth->getRefreshToken();
+    $self->{'access_token'}  = $oauth->getAccessToken();
 
-    return $self->{access_token};
+    return $self->{'access_token'};
 }
 
 1;
@@ -409,7 +409,7 @@ This module use to upload, download, share file on Google drive
     # Search file by name
     my $file_name = 'upload.doc';
     my $files = $disk->searchFileByName( -filename => $file_name ) or croak "File '$file_name' not found";
-    my $file_id = $files->[0]->{id};
+    my $file_id = $files->[0]->{'id'};
     print "File id: $file_id\n";
 
     #Download file
@@ -422,7 +422,7 @@ This module use to upload, download, share file on Google drive
     #Upload file
     my $source_file = '/home/upload.doc';
     my $res = $disk->uploadFile( -source_file   => $source_file );
-    print "File: $source_file uploaded. File id: $res->{id}\n";
+    print "File: $source_file uploaded. File id: $res->{'id'}\n";
 
 =head1 METHODS
 
@@ -549,17 +549,17 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
                     private methods (0)
                     internals: 1
                 },
-                canEdit   var{capabilities}{canCopy}
+                canEdit   var{'capabilities'}{'canCopy'}
             },
-            copyable                       var{capabilities}{canCopy},
-            copyRequiresWriterPermission   var{appDataContents},
+            copyable                       var{'capabilities'}{'canCopy'},
+            copyRequiresWriterPermission   var{'appDataContents'},
             createdDate                    "2018-10-04T12:05:15.896Z",
             downloadUrl                    "https://doc-0g-7o-docs.googleusercontent.com/docs/securesc/ck8i7vfbvef13kb30b8mkrcjv4ihp2uj/3mfn1kbr655euhlo7tctg5mmn8oirg
         gf/1538654400000/10526805100525201667/10526805100525201667/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut?e=download&gd=true",
-            editable                       var{capabilities}{canCopy},
+            editable                       var{'capabilities'}{'canCopy'},
             embedLink                      "https://drive.google.com/file/d/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut/preview?usp=drivesdk",
             etag                           ""omwGuTP8OdxhZkubyp-j43cFdJQ/MTUzODY1NDcxNTg5Ng"",
-            explicitlyTrashed              var{appDataContents},
+            explicitlyTrashed              var{'appDataContents'},
             fileExtension                  "",
             fileSize                       1000000,
             headRevisionId                 "0B4HgPHxdPy22UmZXSFVRTkRLbXhFakdzZjFSUGkrNWZIVFN3PQ",
@@ -567,16 +567,16 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
             id                             "10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut",
             kind                           "drive#file",
             labels                         {
-                hidden       var{appDataContents},
-                restricted   var{appDataContents},
-                starred      var{appDataContents},
-                trashed      var{appDataContents},
-                viewed       var{appDataContents}
+                hidden       var{'appDataContents'},
+                restricted   var{'appDataContents'},
+                starred      var{'appDataContents'},
+                trashed      var{'appDataContents'},
+                viewed       var{'appDataContents'}
             },
             lastModifyingUser              {
                     displayName           "Ларри Уолл",
                     emailAddress          "perlgogledrivemodule@gmail.com",
-                    isAuthenticatedUser   var{capabilities}{canCopy},
+                    isAuthenticatedUser   var{'capabilities'}{'canCopy'},
                     kind                  "drive#user",
                     permissionId          10526805100525201667
             },
@@ -594,7 +594,7 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
                 [0] {
                     displayName           "Ларри Уолл",
                     emailAddress          "perlgogledrivemodule@gmail.com",
-                    isAuthenticatedUser   var{capabilities}{canCopy},
+                    isAuthenticatedUser   var{'capabilities'}{'canCopy'},
                     kind                  "drive#user",
                     permissionId          10526805100525201667
                 }
@@ -602,7 +602,7 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
             parents                        [
                 [0] {
                     id           "0AIHgPHxdPy22Uk9PVA",
-                    isRoot       var{capabilities}{canCopy},
+                    isRoot       var{'capabilities'}{'canCopy'},
                     kind         "drive#parentReference",
                     parentLink   "https://www.googleapis.com/drive/v2/files/0AIHgPHxdPy22Uk9PVA",
                     selfLink     "https://www.googleapis.com/drive/v2/files/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut/parents/0AIHgPHxdPy22Uk9PVA"
@@ -610,7 +610,7 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
             ],
             quotaBytesUsed                 1000000,
             selfLink                       "https://www.googleapis.com/drive/v2/files/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut",
-            shared                         var{appDataContents},
+            shared                         var{'appDataContents'},
             spaces                         [
                 [0] "drive"
             ],
@@ -625,7 +625,7 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
             },
             version                        2,
             webContentLink                 "https://drive.google.com/uc?id=10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut&export=download",
-            writersCanShare                var{capabilities}{canCopy}
+            writersCanShare                var{'capabilities'}{'canCopy'}
         }
 
 =head2 shareFile(%opt)

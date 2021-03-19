@@ -17,7 +17,7 @@ SYNOPSIS
         # Search file by name
         my $file_name = 'upload.doc';
         my $files = $disk->searchFileByName( -filename => $file_name ) or croak "File '$file_name' not found";
-        my $file_id = $files->[0]->{id};
+        my $file_id = $files->[0]->{'id'};
         print "File id: $file_id\n";
 
         #Download file
@@ -30,7 +30,7 @@ SYNOPSIS
         #Upload file
         my $source_file = '/home/upload.doc';
         my $res = $disk->uploadFile( -source_file   => $source_file );
-        print "File: $source_file uploaded. File id: $res->{id}\n";
+        print "File: $source_file uploaded. File id: $res->{'id'}\n";
 
 METHODS
   new(%opt)
@@ -134,17 +134,17 @@ METHODS
                         private methods (0)
                         internals: 1
                     },
-                    canEdit   var{capabilities}{canCopy}
+                    canEdit   var{'capabilities'}{'canCopy'}
                 },
-                copyable                       var{capabilities}{canCopy},
-                copyRequiresWriterPermission   var{appDataContents},
+                copyable                       var{'capabilities'}{'canCopy'},
+                copyRequiresWriterPermission   var{'appDataContents'},
                 createdDate                    "2018-10-04T12:05:15.896Z",
                 downloadUrl                    "https://doc-0g-7o-docs.googleusercontent.com/docs/securesc/ck8i7vfbvef13kb30b8mkrcjv4ihp2uj/3mfn1kbr655euhlo7tctg5mmn8oirg
             gf/1538654400000/10526805100525201667/10526805100525201667/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut?e=download&gd=true",
-                editable                       var{capabilities}{canCopy},
+                editable                       var{'capabilities'}{'canCopy'},
                 embedLink                      "https://drive.google.com/file/d/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut/preview?usp=drivesdk",
                 etag                           ""omwGuTP8OdxhZkubyp-j43cFdJQ/MTUzODY1NDcxNTg5Ng"",
-                explicitlyTrashed              var{appDataContents},
+                explicitlyTrashed              var{'appDataContents'},
                 fileExtension                  "",
                 fileSize                       1000000,
                 headRevisionId                 "0B4HgPHxdPy22UmZXSFVRTkRLbXhFakdzZjFSUGkrNWZIVFN3PQ",
@@ -152,16 +152,16 @@ METHODS
                 id                             "10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut",
                 kind                           "drive#file",
                 labels                         {
-                    hidden       var{appDataContents},
-                    restricted   var{appDataContents},
-                    starred      var{appDataContents},
-                    trashed      var{appDataContents},
-                    viewed       var{appDataContents}
+                    hidden       var{'appDataContents'},
+                    restricted   var{'appDataContents'},
+                    starred      var{'appDataContents'},
+                    trashed      var{'appDataContents'},
+                    viewed       var{'appDataContents'}
                 },
                 lastModifyingUser              {
                         displayName           "Ларри Уолл",
                         emailAddress          "perlgogledrivemodule@gmail.com",
-                        isAuthenticatedUser   var{capabilities}{canCopy},
+                        isAuthenticatedUser   var{'capabilities'}{'canCopy'},
                         kind                  "drive#user",
                         permissionId          10526805100525201667
                 },
@@ -179,7 +179,7 @@ METHODS
                     [0] {
                         displayName           "Ларри Уолл",
                         emailAddress          "perlgogledrivemodule@gmail.com",
-                        isAuthenticatedUser   var{capabilities}{canCopy},
+                        isAuthenticatedUser   var{'capabilities'}{'canCopy'},
                         kind                  "drive#user",
                         permissionId          10526805100525201667
                     }
@@ -187,7 +187,7 @@ METHODS
                 parents                        [
                     [0] {
                         id           "0AIHgPHxdPy22Uk9PVA",
-                        isRoot       var{capabilities}{canCopy},
+                        isRoot       var{'capabilities'}{'canCopy'},
                         kind         "drive#parentReference",
                         parentLink   "https://www.googleapis.com/drive/v2/files/0AIHgPHxdPy22Uk9PVA",
                         selfLink     "https://www.googleapis.com/drive/v2/files/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut/parents/0AIHgPHxdPy22Uk9PVA"
@@ -195,7 +195,7 @@ METHODS
                 ],
                 quotaBytesUsed                 1000000,
                 selfLink                       "https://www.googleapis.com/drive/v2/files/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut",
-                shared                         var{appDataContents},
+                shared                         var{'appDataContents'},
                 spaces                         [
                     [0] "drive"
                 ],
@@ -210,7 +210,7 @@ METHODS
                 },
                 version                        2,
                 webContentLink                 "https://drive.google.com/uc?id=10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut&export=download",
-                writersCanShare                var{capabilities}{canCopy}
+                writersCanShare                var{'capabilities'}{'canCopy'}
             }
 
   shareFile(%opt)
