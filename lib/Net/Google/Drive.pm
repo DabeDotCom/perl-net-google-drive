@@ -28,8 +28,8 @@ sub new {
     my ( $class, %opt ) = @_;
 
     my $self          = {};
-    my $client_id     = $opt{'-client_id'} // croak "You must specify '-client_id' param";
-    my $client_secret = $opt{'-client_secret'} // croak "You must specify '-client_secret' param";
+    my $client_id     = $opt{'-client_id'}     or croak "You must specify '-client_id' param";
+    my $client_secret = $opt{'-client_secret'} or croak "You must specify '-client_secret' param";
     $self->{'access_token'}  = $opt{'-access_token'};
     $self->{'refresh_token'} = $opt{'-refresh_token'};
     $self->{'ua'}            = LWP::UserAgent->new();
@@ -68,7 +68,7 @@ sub listFiles {
 
 sub searchFileByName {
     my ( $self, %opt ) = @_;
-    my $filename = $opt{'-filename'} || croak "You must specify '-filename' param";
+    my $filename = $opt{'-filename'} or croak "You must specify '-filename' param";
     delete $opt{'-filename'};
 
     my $search_res = $self->__searchFile( '-q' => 'name=\'' . $filename . "'", %opt );
@@ -78,7 +78,7 @@ sub searchFileByName {
 
 sub searchFileByNameContains {
     my ( $self, %opt ) = @_;
-    my $filename = $opt{'-filename'} || croak "You must specify '-filename' param";
+    my $filename = $opt{'-filename'} or croak "You must specify '-filename' param";
     delete $opt{'-filename'};
 
     my $search_res = $self->__searchFile( '-q' => 'name contains \'' . $filename . "'", %opt );
@@ -88,8 +88,8 @@ sub searchFileByNameContains {
 
 sub downloadFile {
     my ( $self, %opt ) = @_;
-    my $file_id   = $opt{'-file_id'}   || croak "You must specify '-file_id' param";
-    my $dest_file = $opt{'-dest_file'} || croak "You must specify '-dest_file' param";
+    my $file_id   = $opt{'-file_id'}   or croak "You must specify '-file_id' param";
+    my $dest_file = $opt{'-dest_file'} or croak "You must specify '-dest_file' param";
     my $ua        = $self->{'ua'};
     my $access_token = $self->__getAccessToken();
 
@@ -124,7 +124,7 @@ sub downloadFile {
 
 sub deleteFile {
     my ( $self, %opt ) = @_;
-    my $file_id      = $opt{'-file_id'} || croak "You must specify '-file_id' param";
+    my $file_id      = $opt{'-file_id'} or croak "You must specify '-file_id' param";
     my $access_token = $self->__getAccessToken();
 
     my $uri = URI->new( join( '/', $FILE_API_URL, $file_id ) );
@@ -143,7 +143,7 @@ sub deleteFile {
 
 sub uploadFile {
     my ( $self, %opt ) = @_;
-    my $source_file = $opt{'-source_file'} || croak "You must specify '-source_file' param";
+    my $source_file = $opt{'-source_file'} or croak "You must specify '-source_file' param";
 
     if ( not -f $source_file ) {
         croak "File: $source_file not exists";
@@ -188,9 +188,9 @@ sub uploadFile {
 
 sub setFilePermission {
     my ( $self, %opt ) = @_;
-    my $file_id         = $opt{'-file_id'} || croak "You must specify '-file_id' param";
-    my $permission_type = $opt{'-type'}    || croak "You must specify '-type' param";
-    my $role            = $opt{'-role'}    || croak "You must specify '-role' param";
+    my $file_id         = $opt{'-file_id'} or croak "You must specify '-file_id' param";
+    my $permission_type = $opt{'-type'}    or croak "You must specify '-type' param";
+    my $role            = $opt{'-role'}    or croak "You must specify '-role' param";
     my %valid_permissions = (
         'user'   => 1,
         'group'  => 1,
@@ -241,7 +241,7 @@ sub setFilePermission {
 
 sub getFileMetadata {
     my ( $self, %opt ) = @_;
-    my $file_id      = $opt{'-file_id'} || croak "You must specify '-file_id' param";
+    my $file_id      = $opt{'-file_id'} or croak "You must specify '-file_id' param";
     my $access_token = $self->__getAccessToken();
 
     my $uri = URI->new( join( '/', $FILE_API2_URL, $file_id ) );
@@ -260,7 +260,7 @@ sub getFileMetadata {
 
 sub shareFile {
     my ( $self, %opt ) = @_;
-    my $file_id = $opt{'-file_id'} || croak "You must specify '-file_id' param";
+    my $file_id = $opt{'-file_id'} or croak "You must specify '-file_id' param";
 
     ## Adding permissions to file
     my $permission = $self->setFilePermission(
