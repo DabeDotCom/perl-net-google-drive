@@ -96,9 +96,7 @@ sub searchFileByName {
     my $filename = $opt{'-filename'} or croak "You must specify '-filename' param";
     delete $opt{'-filename'};
 
-    my $search_res = $self->__searchFile( '-q' => 'name=\'' . $filename . "'", %opt );
-
-    return $search_res;
+    return $self->__searchFile( '-q' => 'name=\'' . $filename . "'", %opt );
 }
 
 sub searchFileByNameContains {
@@ -108,9 +106,7 @@ sub searchFileByNameContains {
     my $filename = $opt{'-filename'} or croak "You must specify '-filename' param";
     delete $opt{'-filename'};
 
-    my $search_res = $self->__searchFile( '-q' => 'name contains \'' . $filename . "'", %opt );
-
-    return $search_res;
+    return $self->__searchFile( '-q' => 'name contains \'' . $filename . "'", %opt );
 }
 
 sub downloadFile {
