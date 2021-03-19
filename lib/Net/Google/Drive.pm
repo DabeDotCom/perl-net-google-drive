@@ -67,6 +67,23 @@ sub new {
     return $self;
 }
 
+sub root {
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    return $self->getFileMetadata( -file_id => 'root', @_ );
+}
+
+sub listDrives {
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
+    my $uri = URI->new( $FILE_API_URL =~ s,/files$,/drives,r );
+    $uri->query_param( 'q'                    => $opt{'-q'} ) if exists $opt{'-q'};
+    $uri->query_param( 'useDomainAdminAccess' => $opt{'-useDomainAdminAccess'} ? 'true' : 'false' )
+      if exists $opt{'-useDomainAdminAccess'};
+
+    return $self->get($uri);
+}
+
 sub listFiles {
     my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
     return $self->__searchFile(@_);
