@@ -33,6 +33,7 @@ sub new {
     $self->{'access_token'}  = $opt{'-access_token'}  // $ENV{'GOOGLE_DOCS_ACCESS_TOKEN'};
     $self->{'refresh_token'} = $opt{'-refresh_token'} // $ENV{'GOOGLE_DOCS_REFRESH'};
     $self->{'debug'}         = $opt{'-debug'}         // $::DEBUG // $ENV{'GOOGLE_DOCS_DEBUG'} // 0;
+    $self->{'scope'}         = $opt{'-scope'}         // 'drive';
 
     $self->{'ua'}    = LWP::UserAgent->new();
     $self->{'oauth'} = Net::Google::OAuth->new(
@@ -48,7 +49,7 @@ sub new {
               unless $opt{'-username'} && $opt{'-redirect_uri'};
 
             $self->{'oauth'}->generateAccessToken(
-                -scope        => 'drive',
+                -scope        => $self->{'scope'},
                 -email        => $opt{'-username'},
                 -redirect_uri => $opt{'-redirect_uri'},
               )
