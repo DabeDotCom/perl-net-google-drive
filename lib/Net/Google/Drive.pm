@@ -11,6 +11,7 @@ use JSON;
 use URI;
 use URI::QueryParam;
 use File::Basename;
+use Scalar::Util qw< blessed >;
 
 use Carp qw/carp croak/;
 
@@ -67,12 +68,14 @@ sub new {
 }
 
 sub listFiles {
-    my ( $self, %opt ) = @_;
-    $self->__searchFile(%opt);
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    return $self->__searchFile(@_);
 }
 
 sub searchFileByName {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $filename = $opt{'-filename'} or croak "You must specify '-filename' param";
     delete $opt{'-filename'};
 
@@ -82,7 +85,9 @@ sub searchFileByName {
 }
 
 sub searchFileByNameContains {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $filename = $opt{'-filename'} or croak "You must specify '-filename' param";
     delete $opt{'-filename'};
 
@@ -92,7 +97,9 @@ sub searchFileByNameContains {
 }
 
 sub downloadFile {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $file_id   = $opt{'-file_id'}   or croak "You must specify '-file_id' param";
     my $dest_file = $opt{'-dest_file'} or croak "You must specify '-dest_file' param";
     my $ua        = $self->{'ua'};
@@ -128,7 +135,9 @@ sub downloadFile {
 }
 
 sub deleteFile {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $file_id      = $opt{'-file_id'} or croak "You must specify '-file_id' param";
     my $access_token = $self->__getAccessToken();
 
@@ -147,7 +156,9 @@ sub deleteFile {
 }
 
 sub uploadFile {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $source_file = $opt{'-source_file'} or croak "You must specify '-source_file' param";
 
     if ( not -f $source_file ) {
@@ -192,7 +203,9 @@ sub uploadFile {
 }
 
 sub setFilePermission {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $file_id         = $opt{'-file_id'} or croak "You must specify '-file_id' param";
     my $permission_type = $opt{'-type'}    or croak "You must specify '-type' param";
     my $role            = $opt{'-role'}    or croak "You must specify '-role' param";
@@ -245,7 +258,9 @@ sub setFilePermission {
 }
 
 sub getFileMetadata {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $file_id      = $opt{'-file_id'} or croak "You must specify '-file_id' param";
     my $access_token = $self->__getAccessToken();
 
@@ -264,7 +279,9 @@ sub getFileMetadata {
 }
 
 sub shareFile {
-    my ( $self, %opt ) = @_;
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my %opt  = @_;
+
     my $file_id = $opt{'-file_id'} or croak "You must specify '-file_id' param";
 
     ## Adding permissions to file
