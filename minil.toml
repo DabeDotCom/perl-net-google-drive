@@ -1,0 +1,4 @@
+name = "Net-Google-Drive"
+module_maker="ModuleBuild"
+static_install = "auto"
+license = "perl_5"
