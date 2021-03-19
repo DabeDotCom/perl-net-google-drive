@@ -55,6 +55,9 @@ sub new {
               )
               or die "[Net::Google::Drive] Couldn't generate access token: $@";
 
+            print STDERR "GENERATED  ACCESS TOKEN: @{[ $self->{'oauth'}->getAccessToken  ]}\n";
+            $self->{'access_token'} = $self->{'oauth'}->getAccessToken;
+
             print STDERR "GENERATED REFRESH TOKEN: @{[ $self->{'oauth'}->getRefreshToken ]}\n";
         }
     }
