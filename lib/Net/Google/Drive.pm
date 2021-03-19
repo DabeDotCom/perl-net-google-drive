@@ -470,17 +470,17 @@ Search file on google disk by name. Return arrayref to info with found files. If
             name       "drive.t"
         }
     ]
-    
+
 =head2 searchFileByNameContains(%opt)
 
 Search files on google drive by name contains value in param '-filename'
 Param and return value same as in method L<searchFileByName>
 
-=head2 downloadFile(%opt) 
+=head2 downloadFile(%opt)
 
 Download file from google dist to -dest_file on local system. Return 1 if success, die in otherwise
 
-    %opt: 
+    %opt:
         -dest_file          => Name of file on disk in which you will download file from google disk
         -file_id            => Id of file on google disk
 
@@ -488,13 +488,13 @@ Download file from google dist to -dest_file on local system. Return 1 if succes
 
 Delete file from google disk. Return 1 if success, die in otherwise
 
-    %opt: 
+    %opt:
         -file_id            => Id of file on google disk
 
 =head2 uploadFile(%opt)
 
 Upload file from local system to google drive. Return file_info hashref if success, die in otherwise
-    
+
     %opt:
         -source_file        => File on local system
         -parents            => Optional arrayref of parent ids
@@ -532,7 +532,7 @@ Set permissions for file on google drive. Return permission hashref, die in othe
 
 Get metadata of file. Return hashref with metadata if success, die in otherwise
 
-    %opt: 
+    %opt:
         -file_id            => Id of file on google disk
     Return:
             {                                                                                                                                                         alternateLink                  "https://drive.google.com/file/d/10Z5YDCHn3gnj0S4_Lf0poc2Lm5so0Sut/view?usp=drivesdk",
@@ -632,7 +632,7 @@ Get metadata of file. Return hashref with metadata if success, die in otherwise
 
 Share file for download. Return download link if success, die in otherwise
 
-    %opt: 
+    %opt:
         -file_id            => Id of file on google disk
 
 =head1 DEPENDENCE
