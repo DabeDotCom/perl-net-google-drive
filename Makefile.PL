@@ -11,7 +11,7 @@ WriteMakefile(
         'URI'                   => 1.64,
         'LWP::UserAgent'        => 6.27,
         'LWP::Protocol::https'  => 6.06,
-        'JSON::XS'              => 3.04,
+        'JSON'                  => 2.92,
         'HTTP::Request'         => 6.00,
         'Net::Google::OAuth'    => 0.03,
         'File::Basename'        => 2.84,

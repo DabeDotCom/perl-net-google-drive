@@ -7,7 +7,7 @@ use utf8;
 
 use LWP::UserAgent;
 use HTTP::Request;
-use JSON::XS;
+use JSON;
 use URI;
 use URI::QueryParam;
 use File::Basename;
@@ -659,7 +659,7 @@ Share file for download. Return download link if success, die in otherwise
 
 =head1 DEPENDENCE
 
-L<Net::Google::OAuth>, L<LWP::UserAgent>, L<JSON::XS>, L<URI>, L<HTTP::Request>, L<File::Basename> 
+L<Net::Google::OAuth>, L<LWP::UserAgent>, L<JSON>, L<URI>, L<HTTP::Request>, L<File::Basename>
 
 =head1 AUTHORS
 

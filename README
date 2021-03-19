@@ -221,7 +221,7 @@ METHODS
             -file_id            => Id of file on google disk
 
 DEPENDENCE
-    Net::Google::OAuth, LWP::UserAgent, JSON::XS, URI, HTTP::Request,
+    Net::Google::OAuth, LWP::UserAgent, JSON, URI, HTTP::Request,
     File::Basename
 
 AUTHORS
