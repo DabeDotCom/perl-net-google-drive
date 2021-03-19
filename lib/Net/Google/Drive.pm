@@ -28,12 +28,13 @@ sub new {
     my ( $class, %opt ) = @_;
 
     my $self          = {};
-    my $client_id     = $opt{'-client_id'}     or croak "You must specify '-client_id' param";
-    my $client_secret = $opt{'-client_secret'} or croak "You must specify '-client_secret' param";
-    $self->{'access_token'}  = $opt{'-access_token'};
-    $self->{'refresh_token'} = $opt{'-refresh_token'};
-    $self->{'ua'}            = LWP::UserAgent->new();
+    my $client_id     = $opt{'-client_id'}     // $ENV{'GOOGLE_DOCS_CLIENT_ID'} or croak "Missing \$GOOGLE_DOCS_CLIENT_ID\n\n";
+    my $client_secret = $opt{'-client_secret'} // $ENV{'GOOGLE_DOCS_SECRET'}    or croak "Missing \$GOOGLE_DOCS_SECRET\n\n";
+    $self->{'access_token'}  = $opt{'-access_token'}  // $ENV{'GOOGLE_DOCS_ACCESS_TOKEN'};
+    $self->{'refresh_token'} = $opt{'-refresh_token'} // $ENV{'GOOGLE_DOCS_REFRESH'};
+    $self->{'debug'}         = $opt{'-debug'}         // $::DEBUG // $ENV{'GOOGLE_DOCS_DEBUG'} // 0;
 
+    $self->{'ua'}    = LWP::UserAgent->new();
     $self->{'oauth'} = Net::Google::OAuth->new(
         -client_id     => $client_id,
         -client_secret => $client_secret,
@@ -43,7 +44,7 @@ sub new {
         unless ( $self->{'refresh_token'} ) {
 
             croak
-              "[Net::Google::Drive] You must specify '-access_token', '-refresh_token', or '-username' && '-redirect_uri' param(s)"
+"[Net::Google::Drive] Missing '\$GOOGLE_DOCS_ACCESS_TOKEN', '\$GOOGLE_DOCS_REFRESH', or '-username' && '-redirect_uri'\n"
               unless $opt{'-username'} && $opt{'-redirect_uri'};
 
             $self->{'oauth'}->generateAccessToken(
