@@ -17,7 +17,7 @@ use Carp qw/carp croak/;
 
 use Net::Google::OAuth;
 
-use version; our $VERSION = version->declare("0.10.1");
+use version; our $VERSION = version->declare("0.20.1");
 
 our $DOWNLOAD_BUFF_SIZE  = 1024;
 our $UPLOAD_BUFF_SIZE    = 256 * 1024;
@@ -274,21 +274,13 @@ sub getFileMetadata {
     my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
     my %opt  = @_;
 
-    my $file_id      = $opt{'-file_id'} or croak "You must specify '-file_id' param";
-    my $access_token = $self->__getAccessToken();
+    my $file_id = $opt{'-file_id'} or croak "You must specify '-file_id' param";
 
-    my $uri = URI->new( join( '/', $FILE_API2_URL, $file_id ) );
-    $uri->query_form( 'supportsTeamDrives' => 'true' );
+    my $uri = URI->new( join( '/', $FILE_API_URL, $file_id ) );
+    $uri->query_param( 'supportsTeamDrives' => 'true' );
+    $uri->query_param( 'fields'             => $opt{'-fields'} // '*' );
 
-    my $headers       = [ 'Authorization' => 'Bearer ' . $access_token, ];
-    my $request       = HTTP::Request->new( "GET", $uri, $headers );
-    my $response      = $self->{'ua'}->request($request);
-    my $response_code = $response->code();
-    if ( $response_code != 200 ) {
-        my $error_message = __readErrorMessageFromResponse($response);
-        croak "Can't get metadata from file id: $file_id. Code: $response_code. Error message: $error_message";
-    }
-    return decode_json( $response->content() );
+    return $self->get($uri);
 }
 
 sub shareFile {
@@ -354,40 +346,11 @@ sub __readErrorMessageFromResponse {
 sub __searchFile {
     my ( $self, %opt ) = @_;
 
-    my $access_token = $self->__getAccessToken();
-
-    my $headers = [ 'Authorization' => 'Bearer ' . $access_token, ];
-
     my $uri = URI->new($FILE_API_URL);
     $uri->query_param( 'q'      => $opt{'-q'} )      if $opt{'-q'};
     $uri->query_param( 'fields' => $opt{'-fields'} ) if $opt{'-fields'};
-    my $request = HTTP::Request->new( 'GET', $uri, $headers, );
-    my $files   = [];
-    $self->__apiRequest( $request, $files );
 
-    return $files;
-}
-
-sub __apiRequest {
-    my ( $self, $request, $files ) = @_;
-
-    my $response      = $self->{'ua'}->request($request);
-    my $response_code = $response->code;
-    if ( $response_code != 200 ) {
-        croak "Wrong response code on search_file. Code: $response_code";
-    }
-
-    my $json_res = decode_json( $response->content );
-
-    if ( my $next_token = $json_res->{'nextPageToken'} ) {
-        my $uri = $request->uri;
-        $uri->query_param( 'pageToken' => $next_token );
-        $self->__apiRequest( $request, $files );
-    }
-
-    unshift @$files, @{ $json_res->{'files'} };
-
-    return 1;
+    return $self->get( $uri, %opt )->{'files'};
 }
 
 sub __getAccessToken {
@@ -409,6 +372,56 @@ sub __getAccessToken {
     $self->{'access_token'}  = $oauth->getAccessToken();
 
     return $self->{'access_token'};
+}
+
+sub get {
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my ( $uri, %opt ) = @_;
+
+    print STDERR "FETCHING $uri" if $self->{'debug'} >= 1;
+
+    my $res = $self->__get( $uri, %opt );
+    while ( $res->{'nextPageToken'} ) {
+        print STDERR '.' if $self->{'debug'} >= 1;
+
+        $uri->query_param( pageToken => $res->{'nextPageToken'} );
+        delete $res->{'nextPageToken'};
+
+        my $next = $self->__get( $uri, %opt );
+        if ( $res->{'kind'} eq "drive#driveList" ) {
+            push @{ $res->{'drives'} }, @{ $next->{'drives'} };
+
+        } elsif ( $res->{'kind'} eq "drive#fileList" ) {
+            push @{ $res->{'files'} }, @{ $next->{'files'} };
+
+        } else {
+            die "Don't know how to merge '$res->{'kind'}'";
+        }
+
+        $res->{'nextPageToken'} = $next->{'nextPageToken'} if $next->{'nextPageToken'};
+    }
+    print STDERR "\n" if $self->{'debug'} >= 1;
+
+    return $res;
+}
+
+sub __get {
+    my $self = blessed $_[0] && $_[0]->DOES("Net::Google::Drive") ? shift : shift->new;
+    my ( $uri, %opt ) = @_;
+
+    $uri->query_param( $_ => $opt{'-params'}->{$_} ) for keys %{ $opt{'-params'} || {} };
+
+    my $request = HTTP::Request->new( "GET", $uri, [ Authorization => 'Bearer ' . $self->__getAccessToken ] );
+    print STDERR "GET @{[ $request->uri ]} ...\n" if $self->{'debug'} >= 2;
+    my $response      = $self->{'ua'}->request($request);
+    my $response_code = $response->code;
+    if ( $response_code != 200 ) {
+        my $error_message = __readErrorMessageFromResponse($response);
+        croak "Wrong response code. Code: $response_code; Error message: $error_message";
+    }
+
+    warn "JSON: @{[ $response->content ]}\n" if $self->{'debug'} >= 3;
+    return ( ( eval { decode_json( $response->content ) } ) || $response->content );
 }
 
 1;
