@@ -18,38 +18,39 @@ use Net::Google::OAuth;
 
 use version; our $VERSION = version->declare("0.10.1");
 
-our $DOWNLOAD_BUFF_SIZE     = 1024;
-our $UPLOAD_BUFF_SIZE       = 256 * 1024;
-our $FILE_API_URL           = 'https://www.googleapis.com/drive/v3/files';
-our $FILE_API2_URL          = 'https://www.googleapis.com/drive/v2/files';
-our $UPLOAD_FILE_API_URL    = 'https://www.googleapis.com/upload/drive/v3/files';
+our $DOWNLOAD_BUFF_SIZE  = 1024;
+our $UPLOAD_BUFF_SIZE    = 256 * 1024;
+our $FILE_API_URL        = 'https://www.googleapis.com/drive/v3/files';
+our $FILE_API2_URL       = 'https://www.googleapis.com/drive/v2/files';
+our $UPLOAD_FILE_API_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 
 sub new {
-    my ($class, %opt) = @_;
+    my ( $class, %opt ) = @_;
 
-    my $self                    = {};
-    my $client_id               = $opt{-client_id}          // croak "You must specify '-client_id' param";
-    my $client_secret           = $opt{-client_secret}      // croak "You must specify '-client_secret' param";
-    $self->{access_token}       = $opt{-access_token};
-    $self->{refresh_token}      = $opt{-refresh_token};
-    $self->{ua}                 = LWP::UserAgent->new();
+    my $self          = {};
+    my $client_id     = $opt{-client_id} // croak "You must specify '-client_id' param";
+    my $client_secret = $opt{-client_secret} // croak "You must specify '-client_secret' param";
+    $self->{access_token}  = $opt{-access_token};
+    $self->{refresh_token} = $opt{-refresh_token};
+    $self->{ua}            = LWP::UserAgent->new();
 
-    $self->{oauth}              = Net::Google::OAuth->new(
-                                                -client_id      => $client_id,
-                                                -client_secret  => $client_secret,
-                                            );
+    $self->{oauth} = Net::Google::OAuth->new(
+        -client_id     => $client_id,
+        -client_secret => $client_secret,
+    );
 
     unless ( $self->{access_token} ) {
         unless ( $self->{refresh_token} ) {
 
-            croak "[Net::Google::Drive] You must specify '-access_token', '-refresh_token', or '-username' && '-redirect_uri' param(s)"
+            croak
+              "[Net::Google::Drive] You must specify '-access_token', '-refresh_token', or '-username' && '-redirect_uri' param(s)"
               unless $opt{-username} && $opt{-redirect_uri};
 
             $self->{oauth}->generateAccessToken(
-                                                 -scope        => 'drive',
-                                                 -email        => $opt{-username},
-                                                 -redirect_uri => $opt{-redirect_uri},
-                                               )
+                -scope        => 'drive',
+                -email        => $opt{-username},
+                -redirect_uri => $opt{-redirect_uri},
+              )
               or die "[Net::Google::Drive] Couldn't generate access token: $@";
 
             print STDERR "GENERATED REFRESH TOKEN: @{[ $self->{oauth}->getRefreshToken ]}\n";
@@ -61,66 +62,60 @@ sub new {
 }
 
 sub listFiles {
-    my ($self, %opt)        = @_;
+    my ( $self, %opt ) = @_;
     $self->__searchFile(%opt);
 }
 
 sub searchFileByName {
-    my ($self, %opt)        = @_;
-    my $filename            = $opt{-filename}      || croak "You must specify '-filename' param";
+    my ( $self, %opt ) = @_;
+    my $filename = $opt{-filename} || croak "You must specify '-filename' param";
     delete $opt{-filename};
 
-    my $search_res = $self->__searchFile('-q' => 'name=\'' . $filename . "'", %opt);
- 
+    my $search_res = $self->__searchFile( '-q' => 'name=\'' . $filename . "'", %opt );
+
     return $search_res;
 }
 
 sub searchFileByNameContains {
-    my ($self, %opt)        = @_;
-    my $filename            = $opt{-filename}      || croak "You must specify '-filename' param";
+    my ( $self, %opt ) = @_;
+    my $filename = $opt{-filename} || croak "You must specify '-filename' param";
     delete $opt{-filename};
 
-    my $search_res = $self->__searchFile('-q' => 'name contains \'' . $filename . "'", %opt);
- 
+    my $search_res = $self->__searchFile( '-q' => 'name contains \'' . $filename . "'", %opt );
+
     return $search_res;
 }
 
-
 sub downloadFile {
-    my ($self, %opt)        = @_;
-    my $file_id             = $opt{-file_id}        || croak "You must specify '-file_id' param";
-    my $dest_file           = $opt{-dest_file}      || croak "You must specify '-dest_file' param";
-    my $ua                  = $self->{ua};
-    my $access_token        = $self->__getAccessToken();
+    my ( $self, %opt ) = @_;
+    my $file_id   = $opt{-file_id}   || croak "You must specify '-file_id' param";
+    my $dest_file = $opt{-dest_file} || croak "You must specify '-dest_file' param";
+    my $ua        = $self->{ua};
+    my $access_token = $self->__getAccessToken();
 
-    my $uri = URI->new(join('/', $FILE_API_URL, $file_id));
-    $uri->query_form(
-                        'alt'               => 'media',
-                    );
-    my $headers = [
-        'Authorization' => 'Bearer ' . $access_token,
-    ];
+    my $uri = URI->new( join( '/', $FILE_API_URL, $file_id ) );
+    $uri->query_form( 'alt' => 'media', );
+    my $headers = [ 'Authorization' => 'Bearer ' . $access_token, ];
 
-    my $request = HTTP::Request->new(   'GET',
-                                        $uri,
-                                        $headers,
-                            );
+    my $request = HTTP::Request->new( 'GET', $uri, $headers, );
 
     my $FL;
-    my $response = $ua->request($request, sub {
-                                                    if (not $FL) {
-                                                        open $FL, ">$dest_file" or croak "Cant open $dest_file to write $!";
-                                                        binmode $FL;
-                                                    }
-                                                    print $FL $_[0];
-                                                }, 
-                                                $DOWNLOAD_BUFF_SIZE
-                                            );
+    my $response = $ua->request(
+        $request,
+        sub {
+            if ( not $FL ) {
+                open $FL, ">$dest_file" or croak "Cant open $dest_file to write $!";
+                binmode $FL;
+            }
+            print $FL $_[0];
+        },
+        $DOWNLOAD_BUFF_SIZE
+    );
     if ($FL) {
         close $FL;
     }
     my $response_code = $response->code();
-    if ($response_code != 200) {
+    if ( $response_code != 200 ) {
         my $error_message = __readErrorMessageFromResponse($response);
         croak "Can't download file id: $file_id to destination file: $dest_file. Code: $response_code. Message: '$error_message'";
     }
@@ -128,23 +123,18 @@ sub downloadFile {
 }
 
 sub deleteFile {
-    my ($self, %opt)        = @_;
-    my $file_id             = $opt{-file_id}        || croak "You must specify '-file_id' param";
-    my $access_token        = $self->__getAccessToken();
+    my ( $self, %opt ) = @_;
+    my $file_id      = $opt{-file_id} || croak "You must specify '-file_id' param";
+    my $access_token = $self->__getAccessToken();
 
-    my $uri = URI->new(join('/', $FILE_API_URL, $file_id));
+    my $uri = URI->new( join( '/', $FILE_API_URL, $file_id ) );
 
-    my $headers = [
-        'Authorization' => 'Bearer ' . $access_token,
-    ];
+    my $headers = [ 'Authorization' => 'Bearer ' . $access_token, ];
 
-    my $request = HTTP::Request->new(   'DELETE',
-                                        $uri,
-                                        $headers,
-                            );
-    my $response = $self->{ua}->request($request);
+    my $request       = HTTP::Request->new( 'DELETE', $uri, $headers, );
+    my $response      = $self->{ua}->request($request);
     my $response_code = $response->code();
-    if ($response_code =~ /^[^2]/) {
+    if ( $response_code =~ /^[^2]/ ) {
         my $error_message = __readErrorMessageFromResponse($response);
         croak "Can't delete file id: $file_id. Code: $response_code. Message: $error_message";
     }
@@ -152,40 +142,41 @@ sub deleteFile {
 }
 
 sub uploadFile {
-    my ($self, %opt)                    = @_;
-    my $source_file                     = $opt{-source_file}        || croak "You must specify '-source_file' param";
+    my ( $self, %opt ) = @_;
+    my $source_file = $opt{-source_file} || croak "You must specify '-source_file' param";
 
-    if (not -f $source_file) {
+    if ( not -f $source_file ) {
         croak "File: $source_file not exists";
     }
 
-    my $file_size = (stat $source_file)[7];
-    my $part_upload_uri = $self->__createEmptyFile($source_file, $file_size, $opt{-parents});
+    my $file_size       = ( stat $source_file )[7];
+    my $part_upload_uri = $self->__createEmptyFile( $source_file, $file_size, $opt{-parents} );
     open my $FH, "<$source_file" or croak "Can't open file: $source_file $!";
     binmode $FH;
 
     my $filebuf;
-    my $uri = URI->new($part_upload_uri);
+    my $uri        = URI->new($part_upload_uri);
     my $start_byte = 0;
-    while (my $bytes = read($FH, $filebuf, $UPLOAD_BUFF_SIZE)) {
+    while ( my $bytes = read( $FH, $filebuf, $UPLOAD_BUFF_SIZE ) ) {
         my $end_byte = $start_byte + $bytes - 1;
-        my $headers = [
-            'Content-Length'    => $bytes,
-            'Content-Range'     => sprintf("bytes %d-%d/%d", $start_byte, $end_byte, $file_size),
+        my $headers  = [
+            'Content-Length' => $bytes,
+            'Content-Range'  => sprintf( "bytes %d-%d/%d", $start_byte, $end_byte, $file_size ),
         ];
-        my $request = HTTP::Request->new('PUT', $uri, $headers, $filebuf);
+        my $request = HTTP::Request->new( 'PUT', $uri, $headers, $filebuf );
 
         # Send request to upload part of file
-        my $response = $self->{ua}->request($request);
+        my $response      = $self->{ua}->request($request);
         my $response_code = $response->code();
+
         # On end part, response code is 200, on middle part is 308
-        if ($response_code == 200 || $response_code == 201) {
-            if ($end_byte + 1 != $file_size) {
-                croak "Server return code: $response_code on upload file, but file is not fully uploaded. End byte: $end_byte. File size: $file_size. File: $source_file";
+        if ( $response_code == 200 || $response_code == 201 ) {
+            if ( $end_byte + 1 != $file_size ) {
+                croak
+"Server return code: $response_code on upload file, but file is not fully uploaded. End byte: $end_byte. File size: $file_size. File: $source_file";
             }
-            return decode_json($response->content());
-        }
-        elsif ($response_code != 308) {
+            return decode_json( $response->content() );
+        } elsif ( $response_code != 308 ) {
             croak "Wrong response code on upload part file. Code: $response_code. File: $source_file";
         }
         $start_byte += $bytes;
@@ -196,89 +187,88 @@ sub uploadFile {
 }
 
 sub setFilePermission {
-    my ($self, %opt)            = @_;
-    my $file_id                 = $opt{-file_id}        || croak "You must specify '-file_id' param";
-    my $permission_type         = $opt{-type}           || croak "You must specify '-type' param";
-    my $role                    = $opt{-role}           || croak "You must specify '-role' param";
-    my %valid_permissions       = (
-        'user'              => 1,
-        'group'             => 1,
-        'domain'            => 1,
-        'anyone'            => 1,
+    my ( $self, %opt ) = @_;
+    my $file_id         = $opt{-file_id} || croak "You must specify '-file_id' param";
+    my $permission_type = $opt{-type}    || croak "You must specify '-type' param";
+    my $role            = $opt{-role}    || croak "You must specify '-role' param";
+    my %valid_permissions = (
+        'user'   => 1,
+        'group'  => 1,
+        'domain' => 1,
+        'anyone' => 1,
     );
 
     my %valid_roles = (
-        'owner'             => 1,
-        'organizer'         => 1,
-        'fileOrganizer'     => 1,
-        'writer'            => 1,
-        'commenter'         => 1,
-        'reader'            => 1,
+        'owner'         => 1,
+        'organizer'     => 1,
+        'fileOrganizer' => 1,
+        'writer'        => 1,
+        'commenter'     => 1,
+        'reader'        => 1,
     );
+
     #Check permission in param
-    if (not $valid_permissions{$permission_type}) {
-        croak "Wrong permission type: '$permission_type'. Valid permissions types: " . join(' ', keys %valid_permissions);
+    if ( not $valid_permissions{$permission_type} ) {
+        croak "Wrong permission type: '$permission_type'. Valid permissions types: " . join( ' ', keys %valid_permissions );
     }
 
     #Check role in param
-    if (not $valid_roles{$role}) {
-        croak "Wrong role: '$role'. Valid roles: " . join(' ', keys %valid_roles);
+    if ( not $valid_roles{$role} ) {
+        croak "Wrong role: '$role'. Valid roles: " . join( ' ', keys %valid_roles );
     }
-    my $access_token            = $self->__getAccessToken();
+    my $access_token = $self->__getAccessToken();
 
-    my $uri = URI->new(join('/', $FILE_API_URL, $file_id, 'permissions'));
+    my $uri     = URI->new( join( '/', $FILE_API_URL, $file_id, 'permissions' ) );
     my $headers = [
         'Authorization' => 'Bearer ' . $access_token,
         'Content-Type'  => 'application/json',
     ];
     my $request_content = {
-        'type'  => $permission_type,
-        'role'  => $role,
+        'type' => $permission_type,
+        'role' => $role,
     };
 
-    my $request = HTTP::Request->new('POST', $uri, $headers, encode_json($request_content));
+    my $request = HTTP::Request->new( 'POST', $uri, $headers, encode_json($request_content) );
 
-    my $response = $self->{ua}->request($request);
+    my $response      = $self->{ua}->request($request);
     my $response_code = $response->code();
-    if ($response_code != 200) {
+    if ( $response_code != 200 ) {
         my $error_message = __readErrorMessageFromResponse($response);
         croak "Can't share file id: $file_id. Code: $response_code. Error message: $error_message";
     }
-    return decode_json($response->content());
+    return decode_json( $response->content() );
 }
 
 sub getFileMetadata {
-    my ($self, %opt)            = @_;
-    my $file_id                 = $opt{-file_id}        || croak "You must specify '-file_id' param";
-    my $access_token            = $self->__getAccessToken();
+    my ( $self, %opt ) = @_;
+    my $file_id      = $opt{-file_id} || croak "You must specify '-file_id' param";
+    my $access_token = $self->__getAccessToken();
 
-    my $uri = URI->new(join('/', $FILE_API2_URL, $file_id));
-    $uri->query_form('supportsTeamDrives' => 'true');
+    my $uri = URI->new( join( '/', $FILE_API2_URL, $file_id ) );
+    $uri->query_form( 'supportsTeamDrives' => 'true' );
 
-    my $headers = [
-        'Authorization' => 'Bearer ' . $access_token,
-    ];
-    my $request = HTTP::Request->new("GET", $uri, $headers);
-    my $response = $self->{ua}->request($request);
+    my $headers       = [ 'Authorization' => 'Bearer ' . $access_token, ];
+    my $request       = HTTP::Request->new( "GET", $uri, $headers );
+    my $response      = $self->{ua}->request($request);
     my $response_code = $response->code();
-    if ($response_code != 200) {
+    if ( $response_code != 200 ) {
         my $error_message = __readErrorMessageFromResponse($response);
         croak "Can't get metadata from file id: $file_id. Code: $response_code. Error message: $error_message";
     }
-    return decode_json($response->content());
+    return decode_json( $response->content() );
 }
 
 sub shareFile {
-    my ($self, %opt)            = @_;
-    my $file_id                 = $opt{-file_id}        || croak "You must specify '-file_id' param";
+    my ( $self, %opt ) = @_;
+    my $file_id = $opt{-file_id} || croak "You must specify '-file_id' param";
 
     ## Adding permissions to file
     my $permission = $self->setFilePermission(
-                                -file_id        => $file_id,
-                                -type           => 'anyone',
-                                -role           => 'reader',
-                            );
-    if ((not exists $permission->{type}) || ($permission->{type} ne 'anyone')) {
+        -file_id => $file_id,
+        -type    => 'anyone',
+        -role    => 'reader',
+    );
+    if ( ( not exists $permission->{type} ) || ( $permission->{type} ne 'anyone' ) ) {
         croak "Can't set permission to anyone for file id: $file_id";
     }
 
@@ -287,29 +277,27 @@ sub shareFile {
 }
 
 sub __createEmptyFile {
-    my ($self, $source_file, $file_size, $parents) = @_;
-    my $access_token                               = $self->__getAccessToken();
+    my ( $self, $source_file, $file_size, $parents ) = @_;
+    my $access_token = $self->__getAccessToken();
 
-    my $body = {
-        'name'  => basename($source_file),
-    };
+    my $body = { 'name' => basename($source_file), };
     $body->{parents} = $parents if $parents;
     my $body_json = encode_json($body);
 
     my $uri = URI->new($UPLOAD_FILE_API_URL);
-    $uri->query_form('upload_type'  => 'resumable');
+    $uri->query_form( 'upload_type' => 'resumable' );
     my $headers = [
-        'Authorization'             => 'Bearer ' . $access_token,
-        'Content-Length'            => length($body_json),
-        'Content-Type'              => 'application/json; charset=UTF-8',
-        'X-Upload-Content-Length'   => $file_size,
+        'Authorization'           => 'Bearer ' . $access_token,
+        'Content-Length'          => length($body_json),
+        'Content-Type'            => 'application/json; charset=UTF-8',
+        'X-Upload-Content-Length' => $file_size,
     ];
 
-    my $request = HTTP::Request->new('POST', $uri, $headers, $body_json);
+    my $request  = HTTP::Request->new( 'POST', $uri, $headers, $body_json );
     my $response = $self->{ua}->request($request);
 
     my $response_code = $response->code();
-    if ($response_code != 200) {
+    if ( $response_code != 200 ) {
         my $error_message = __readErrorMessageFromResponse($response);
         croak "Can't upload part of file. Code: $response_code. Error message: $error_message";
     }
@@ -321,56 +309,48 @@ sub __createEmptyFile {
 
 sub __readErrorMessageFromResponse {
     my ($response) = @_;
-    my $error_message = eval {decode_json($response->content)};
+    my $error_message = eval { decode_json( $response->content ) };
     if ($error_message) {
         return $error_message->{error}->{message};
     }
     return '';
 }
 
-
-
 sub __searchFile {
-    my ($self, %opt) = @_;
+    my ( $self, %opt ) = @_;
 
     my $access_token = $self->__getAccessToken();
-    
-    my $headers = [
-        'Authorization' => 'Bearer ' . $access_token,
-    ];
+
+    my $headers = [ 'Authorization' => 'Bearer ' . $access_token, ];
 
     my $uri = URI->new($FILE_API_URL);
-    $uri->query_param('q'      => $opt{-q})      if $opt{-q};
-    $uri->query_param('fields' => $opt{-fields}) if $opt{-fields};
-    my $request = HTTP::Request->new('GET',
-                                $uri,
-                                $headers,
-                            );
-    my $files = [];
-    $self->__apiRequest($request, $files);
-
+    $uri->query_param( 'q'      => $opt{-q} )      if $opt{-q};
+    $uri->query_param( 'fields' => $opt{-fields} ) if $opt{-fields};
+    my $request = HTTP::Request->new( 'GET', $uri, $headers, );
+    my $files   = [];
+    $self->__apiRequest( $request, $files );
 
     return $files;
 }
 
 sub __apiRequest {
-    my ($self, $request, $files) = @_;
+    my ( $self, $request, $files ) = @_;
 
-    my $response = $self->{ua}->request($request);
+    my $response      = $self->{ua}->request($request);
     my $response_code = $response->code;
-    if ($response_code != 200) {
+    if ( $response_code != 200 ) {
         croak "Wrong response code on search_file. Code: $response_code";
     }
 
-    my $json_res = decode_json($response->content);
+    my $json_res = decode_json( $response->content );
 
-    if (my $next_token = $json_res->{nextPageToken}) {
+    if ( my $next_token = $json_res->{nextPageToken} ) {
         my $uri = $request->uri;
-        $uri->query_param('pageToken' => $next_token);
-        $self->__apiRequest($request, $files);
+        $uri->query_param( 'pageToken' => $next_token );
+        $self->__apiRequest( $request, $files );
     }
 
-    unshift @$files, @{$json_res->{files}};
+    unshift @$files, @{ $json_res->{files} };
 
     return 1;
 }
@@ -378,14 +358,12 @@ sub __apiRequest {
 sub __getAccessToken {
     my ($self) = @_;
 
-    my $oauth = $self->{oauth};
-    my $token_info = 
-        eval {
-            $oauth->getTokenInfo( -access_token => $self->{access_token} );
-        };
+    my $oauth      = $self->{oauth};
+    my $token_info = eval { $oauth->getTokenInfo( -access_token => $self->{access_token} ); };
+
     # If error on get token info or token is expired
-    if (not $@) {
-        if ((exists $token_info->{expires_in}) && ($token_info->{expires_in} > 5)) {
+    if ( not $@ ) {
+        if ( ( exists $token_info->{expires_in} ) && ( $token_info->{expires_in} > 5 ) ) {
             return $self->{access_token};
         }
     }
@@ -393,7 +371,7 @@ sub __getAccessToken {
     #Refresh token
     $oauth->refreshToken( -refresh_token => $self->{refresh_token} );
     $self->{refresh_token} = $oauth->getRefreshToken();
-    $self->{access_token} = $oauth->getAccessToken();
+    $self->{access_token}  = $oauth->getAccessToken();
 
     return $self->{access_token};
 }
